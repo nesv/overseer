@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -31,16 +32,42 @@ var (
 func main() {
 	flag.Parse()
 	glog.Infoln("Loading configuration file")
-	config, err := LoadConfig(filepath.Join(*ConfigDir, "config.yml"))
-	if err != nil {
-		glog.Fatalln(err)
+	configPaths := []string{
+		filepath.Join(*ConfigDir, "config.yml"),
+		filepath.Join(*ConfigDir, "config.json")}
+	var config *Configuration
+	var err error
+	for _, cfgpth := range configPaths {
+		config, err = LoadConfig(cfgpth)
+		if err != nil && os.IsNotExist(err) {
+			// The configuration file we just attempted to load
+			// does not exist. No issue; we will just move on
+			// to the next one.
+			continue
+		} else if err != nil {
+			glog.Fatalln(err)
+		} else if err == nil {
+			break
+		}
+	}
+	if config == nil {
+		// *WELP*, it looks like we couldn't find a configuration file.
+		glog.Fatalln("No config.json or config.yml file found")
 	}
 
 	glog.Infoln("Loading process configuration files")
 	processConfigDir := filepath.Join(*ConfigDir, "process.d")
-	processConfigs, err := filepath.Glob(filepath.Join(processConfigDir, "*.yml"))
-	if err != nil {
-		glog.Fatalln(err)
+	processConfigs := make([]string, 0)
+	globs := []string{
+		filepath.Join(processConfigDir, "*.yml"),
+		filepath.Join(processConfigDir, "*.yaml"),
+		filepath.Join(processConfigDir, "*.json")}
+	for _, pat := range globs {
+		matches, err := filepath.Glob(pat)
+		if err != nil {
+			glog.Fatalln(err)
+		}
+		processConfigs = append(processConfigs, matches...)
 	}
 	processes := make([]*Process, len(processConfigs))
 	for i, pconfig := range processConfigs {

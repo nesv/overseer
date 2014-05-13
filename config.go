@@ -18,11 +18,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"path/filepath"
 
 	yaml "gopkg.in/yaml.v1"
 )
+
+var ErrUnsupportedConfig = errors.New("unsupported config file type")
 
 func LoadYAML(path string, v interface{}) error {
 	b, err := ioutil.ReadFile(path)
@@ -30,6 +33,25 @@ func LoadYAML(path string, v interface{}) error {
 		return err
 	}
 	return yaml.Unmarshal(b, v)
+}
+
+func LoadJSON(path string, v interface{}) error {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, v)
+}
+
+func LoadFile(path string, v interface{}) error {
+	var err error
+	switch ext := filepath.Ext(path); ext {
+	case ".yaml", ".yml":
+		err = LoadYAML(path, v)
+	case ".json":
+		err = LoadJSON(path, v)
+	}
+	return err
 }
 
 type Configuration struct {
@@ -41,19 +63,7 @@ type Configuration struct {
 }
 
 func LoadConfig(path string) (*Configuration, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
 	var c Configuration
-	switch ext := filepath.Ext(path); ext {
-	case ".yaml", ".yml":
-		err = yaml.Unmarshal(b, &c)
-
-	case ".json":
-		err = json.Unmarshal(b, &c)
-	}
-
+	err := LoadFile(path, &c)
 	return &c, err
 }

@@ -37,13 +37,13 @@ var (
 
 type (
 	Process struct {
-		Name           string            `yaml:"name"`
-		Command        string            `yaml:"command"`
-		Env            map[string]string `yaml:"env,flow"`
-		WorkingDir     string            `yaml:"working_dir,omitempty"`
-		RedirectStderr bool              `yaml:"redirect_stderr,omitempty"`
-		StdoutLogfile  string            `yaml:"stdout_logfile,omitempty"`
-		StderrLogfile  string            `yaml:"stderr_logilfe,omitempty"`
+		Name           string            `yaml:"name" json:"name"`
+		Command        string            `yaml:"command" json:"command"`
+		Env            map[string]string `yaml:"env,flow" json:"env"`
+		WorkingDir     string            `yaml:"working_dir,omitempty" json:"working_dir"`
+		RedirectStderr bool              `yaml:"redirect_stderr,omitempty" json:"redirect_stderr"`
+		StdoutLogfile  string            `yaml:"stdout_logfile,omitempty" json:"stdout_logfile"`
+		StderrLogfile  string            `yaml:"stderr_logilfe,omitempty" json:"stderr_logfile"`
 
 		running bool
 		stop    chan struct{}
@@ -54,7 +54,7 @@ type (
 
 func LoadProcess(configPath string, globalConfig Configuration) (*Process, error) {
 	var proc Process
-	err := LoadYAML(configPath, &proc)
+	err := LoadFile(configPath, &proc)
 
 	if proc.Name == "" {
 		return nil, ErrNoProcessName
