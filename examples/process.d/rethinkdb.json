@@ -1,0 +1,7 @@
+{
+    "name": "rethinkdb",
+    "command": "rethinkdb serve",
+    "working_dir": "/tmp",
+    "redirect_stderr": true,
+    "stdout_logfile": "/usr/local/var/log/overseer/rethinkdb.log"
+}
