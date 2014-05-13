@@ -42,22 +42,23 @@ func main() {
 	if err != nil {
 		glog.Fatalln(err)
 	}
-	processes := make([]*Process, 0)
-	for _, pconfig := range processConfigs {
+	processes := make([]*Process, len(processConfigs))
+	for i, pconfig := range processConfigs {
 		if proc, err := LoadProcess(pconfig, *config); err != nil {
 			glog.Fatalln(err)
 		} else {
-			processes = append(processes, proc)
+			processes[i] = proc
 		}
 	}
 
 	glog.Infoln("Starting processes")
 	for _, proc := range processes {
-		go func() {
-			if err := proc.Start(); err != nil {
-				glog.Warningln(err)
+		glog.V(1).Infoln("|-", proc.Name)
+		go func(p *Process) {
+			if err := p.Start(); err != nil {
+				glog.Warningf("%s: %v", p.Name, err)
 			}
-		}()
+		}(proc)
 	}
 
 	if config.HTTP.Enabled {

@@ -48,6 +48,7 @@ type (
 		running bool
 		stop    chan struct{}
 		pid     int
+		cmd     *exec.Cmd
 	}
 )
 
@@ -78,7 +79,7 @@ func (p *Process) Start() error {
 	}
 
 	cmdParts := strings.Split(p.Command, " ")
-	cmd := exec.Command(cmdParts[0], cmdParts[1:]...)
+	p.cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
 	if p.RedirectStderr {
 		// Combine STDOUT and STDERR into the same stream.
 		lf, err := os.OpenFile(p.StdoutLogfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
@@ -86,22 +87,22 @@ func (p *Process) Start() error {
 			return fmt.Errorf("error opening logfile %q: %v", p.StdoutLogfile, err)
 		}
 		defer lf.Close()
-		cmd.Stdout = lf
-		cmd.Stderr = lf
+		p.cmd.Stdout = lf
+		p.cmd.Stderr = lf
 	} else {
 		of, err := os.OpenFile(p.StdoutLogfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 		if err != nil {
 			return fmt.Errorf("error opening logfile %q: %v", p.StdoutLogfile, err)
 		}
 		defer of.Close()
-		cmd.Stdout = of
+		p.cmd.Stdout = of
 
 		ef, err := os.OpenFile(p.StderrLogfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 		if err != nil {
 			return fmt.Errorf("error opening logfile %q: %v", p.StderrLogfile, err)
 		}
 		defer ef.Close()
-		cmd.Stderr = ef
+		p.cmd.Stderr = ef
 	}
 
 	// Set the environment for the command.
@@ -110,44 +111,46 @@ func (p *Process) Start() error {
 		env = append(env, fmt.Sprintf("%s=%q", k, v))
 	}
 	if len(env) > 0 {
-		cmd.Env = env
+		p.cmd.Env = env
 	}
 
 	// Set the working directory for the process (if specified in the
 	// config file).
 	if p.WorkingDir != "" {
-		cmd.Dir = p.WorkingDir
+		p.cmd.Dir = p.WorkingDir
 	}
 
 	// Start the command!
-	if err := cmd.Start(); err != nil {
+	if err := p.cmd.Start(); err != nil {
 		return err
 	}
 	p.running = true
-	p.pid = cmd.Process.Pid
+	p.pid = p.cmd.Process.Pid
 
 	var done = make(chan *os.ProcessState)
 	var errors = make(chan error)
-	go func() {
-		if err := cmd.Wait(); err != nil {
+	go func(done chan *os.ProcessState, errors chan error) {
+		if err := p.cmd.Wait(); err != nil {
 			errors <- err
 		}
-		done <- cmd.ProcessState
-	}()
-	defer close(done)
-	defer close(errors)
+		done <- p.cmd.ProcessState
+		close(done)
+		close(errors)
+	}(done, errors)
+
+	glog.V(1).Infof("%s: started (%d)", p.Name, p.pid)
 
 	p.stop = make(chan struct{}, 1)
 	for {
 		select {
-		case pstate := <-done:
+		case _ = <-done:
 			// The process has exited.
-			glog.Infoln("Process %d has stopped", pstate.Pid())
+			glog.V(1).Infof("%s: stopped", p.Name)
 			break
 
 		case <-p.stop:
 			// Stop the process.
-			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+			if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 				p.running = false
 			}
 			break
