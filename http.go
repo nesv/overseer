@@ -21,5 +21,6 @@ import (
 )
 
 func HTTPStatus(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "", http.StatusNotImplemented)
 	return
 }

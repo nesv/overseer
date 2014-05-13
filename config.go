@@ -41,7 +41,7 @@ type Configuration struct {
 }
 
 func LoadConfig(path string) (*Configuration, error) {
-	b, err := ioutil.ReadAll(path)
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
