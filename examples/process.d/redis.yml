@@ -1,0 +1,5 @@
+---
+name: redis
+command: /usr/local/bin/redis-server /usr/local/etc/redis.conf
+redirect_stderr: true
+stdout_logfile: /usr/local/var/log/overseer/redis.log

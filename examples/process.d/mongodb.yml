@@ -1,6 +1,5 @@
 ---
 name: mongodb
-command: /usr/local/bin/mongod --smallfiles --noprealloc --config /usr/local/etc/mongod.conf
-env:
-  PORT: 27017
+command: /usr/local/bin/mongod --config /usr/local/etc/mongod.conf
 redirect_stderr: true
+stdout_logfile: /usr/local/var/log/overseer/mongod.log
