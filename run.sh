@@ -10,5 +10,6 @@ trap cleanup EXIT
 go build .
 if [[ $? -eq 0 ]]; then
     ./overseer \
-	-logtostderr
+	-config-dir="examples" \
+	-logtostderr -v=1
 fi

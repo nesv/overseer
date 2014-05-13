@@ -40,7 +40,7 @@ type (
 		Name           string            `yaml:"name"`
 		Command        string            `yaml:"command"`
 		Env            map[string]string `yaml:"env,flow"`
-		WorkingDir     string            `yaml:"working_dir"`
+		WorkingDir     string            `yaml:"working_dir,omitempty"`
 		RedirectStderr bool              `yaml:"redirect_stderr,omitempty"`
 		StdoutLogfile  string            `yaml:"stdout_logfile,omitempty"`
 		StderrLogfile  string            `yaml:"stderr_logilfe,omitempty"`
